@@ -22,6 +22,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       reconnectionDelay: 2000,
       timeout: 30000,
       autoConnect: true,
+      withCredentials: true,
+      path: "/socket.io/"
     });
     setSocket(s);
 

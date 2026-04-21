@@ -34,11 +34,25 @@ async function startServer() {
 
   // 3. Socket.io
   const io = new Server(httpServer, {
-    cors: { origin: true, methods: ["GET", "POST"], credentials: true },
-    allowEIO3: true,
+    cors: { 
+      origin: (origin, callback) => {
+        // En desarrollo o con proxies, permitimos cualquier origen con credenciales
+        callback(null, true);
+      },
+      methods: ["GET", "POST"], 
+      credentials: true 
+    },
     pingTimeout: 60000,
     pingInterval: 25000,
-    path: "/socket.io/"
+    path: "/socket.io/",
+    addTrailingSlash: true, // Cambiado a true para ver si mejora la compatibilidad
+    connectTimeout: 45000,
+  });
+
+  // Diagnóstico de errores de motor (importante para "server error")
+  io.engine.on("connection_error", (err) => {
+    console.error(`[SOCKET ERROR] Code ${err.code}: ${err.message}`);
+    console.error(`[SOCKET ERROR] Context:`, err.context);
   });
 
   const activeBroadcasters = new Map<string, { id: string, name: string, viewers: number }>();
@@ -121,7 +135,7 @@ async function startServer() {
   const api = express.Router();
 
   api.get("/health", (req, res) => {
-    res.json({ status: "ok", version: "1.1.5", env: process.env.NODE_ENV });
+    res.json({ status: "ok", version: "1.1.7", env: process.env.NODE_ENV });
   });
 
   api.post("/livekit/token", async (req, res) => {

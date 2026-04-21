@@ -77,7 +77,9 @@ export default function Broadcast() {
     setConnecting(true);
     try {
       console.log("Solicitando token a la API...");
-      const response = await fetch('/api/livekit/token', {
+      const apiUrl = '/api/livekit/token';
+      console.log(`Pidiendo token a: ${apiUrl}`);
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,7 +98,7 @@ export default function Broadcast() {
             errorMessage = errorData.error || errorMessage;
           } catch (e) {
             console.error("Respuesta no-JSON recibida:", text.substring(0, 200));
-            if (response.status === 404) errorMessage = "Ruta de API no encontrada (404). El servidor podría estar reiniciándose o no ser compatible con el dominio actual.";
+            if (response.status === 404) errorMessage = `Ruta de API no encontrada (404) en ${window.location.host}. El servidor podría estar reiniciándose o no ser compatible con el dominio actual.`;
             else if (response.status >= 500) errorMessage = "Error interno del servidor (500). Revisa los logs.";
           }
         } catch (e) {
@@ -445,7 +447,7 @@ export default function Broadcast() {
                       <span className="text-[8px] text-red-500/50 animate-pulse">(Error de Red)</span>
                     )}
                   </div>
-                  <h2 className="font-bold text-white leading-tight">Panel de Transmisión v1.1.5</h2>
+                  <h2 className="font-bold text-white leading-tight">Panel de Transmisión v1.1.7</h2>
                   <p className="text-[10px] text-neutral-500 uppercase tracking-widest">{user?.name || "Locutor"}</p>
                 </div>
               </div>
