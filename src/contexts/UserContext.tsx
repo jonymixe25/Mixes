@@ -37,7 +37,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return userDoc.data().role as "admin" | "user";
       } else {
         // Default admin for the super user
-        const role = (email === "mixecultura25@gmail.com" || email === "ayuuktv42@gmail.com") ? "admin" : "user";
+        const role = email === "mixecultura25@gmail.com" ? "admin" : "user";
         // Create user doc if it doesn't exist
         await setDoc(doc(db, "users", uid), {
           uid,
@@ -50,7 +50,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.error("Error fetching user role:", err);
-      return (email === "mixecultura25@gmail.com" || email === "ayuuktv42@gmail.com") ? "admin" : "user";
+      return email === "mixecultura25@gmail.com" ? "admin" : "user";
     }
   };
 

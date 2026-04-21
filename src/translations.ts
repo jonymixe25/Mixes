@@ -1,4 +1,4 @@
-export type Language = 'es' | 'mixe';
+export type Language = 'es' | 'ayuujk';
 
 export interface Translations {
   nav: {
@@ -184,6 +184,46 @@ export interface Translations {
     mixeSymphonyDesc: string;
     sacredAltitude: string;
     sacredAltitudeDesc: string;
+  };
+  community: {
+    title: string;
+    subtitle: string;
+    searchPlaceholder: string;
+    uploadMedia: string;
+    noMedia: string;
+    postTitle: string;
+    postDesc: string;
+    postTags: string;
+    postType: string;
+    image: string;
+    video: string;
+    publish: string;
+    publishing: string;
+    comments: string;
+    addComment: string;
+    postComment: string;
+  };
+  contacts: {
+    title: string;
+    suggestions: string;
+    addContact: string;
+    pending: string;
+    accepted: string;
+    noContacts: string;
+    searchUsers: string;
+  };
+  videoCall: {
+    startCall: string;
+    incomingCall: string;
+    connecting: string;
+    endCall: string;
+    mic: string;
+    camera: string;
+    groups: string;
+    newGroup: string;
+    groupName: string;
+    members: string;
+    createGroup: string;
   };
 }
 
@@ -373,8 +413,48 @@ export const translations: Record<Language, Translations> = {
       sacredAltitude: 'Altitud Sagrada',
       sacredAltitudeDesc: 'Tradiciones preservadas en la cima de la sierra.',
     },
+    community: {
+      title: 'Comunidad Mixe',
+      subtitle: 'Nuestras historias en fotos y videos',
+      searchPlaceholder: 'Buscar por etiquetas o título...',
+      uploadMedia: 'Publicar Foto/Video',
+      noMedia: 'Aún no hay publicaciones. ¡Sé el primero!',
+      postTitle: 'Título',
+      postDesc: 'Descripción',
+      postTags: 'Etiquetas (separadas por coma)',
+      postType: 'Tipo de contenido',
+      image: 'Imagen',
+      video: 'Video',
+      publish: 'Publicar',
+      publishing: 'Publicando...',
+      comments: 'Comentarios',
+      addComment: 'Añadir un comentario...',
+      postComment: 'Enviar',
+    },
+    contacts: {
+      title: 'Mis Contactos',
+      suggestions: 'Sugerencias',
+      addContact: 'Agregar',
+      pending: 'Pendiente',
+      accepted: 'Conectados',
+      noContacts: 'No tienes contactos aún. Busca a tus amigos.',
+      searchUsers: 'Buscar usuarios...',
+    },
+    videoCall: {
+      startCall: 'Iniciar Videollamada',
+      incomingCall: 'Llamada Entrante',
+      connecting: 'Conectando...',
+      endCall: 'Finalizar',
+      mic: 'Micrófono',
+      camera: 'Cámara',
+      groups: 'Grupos',
+      newGroup: 'Nuevo Grupo',
+      groupName: 'Nombre del Grupo',
+      members: 'Miembros',
+      createGroup: 'Crear Grupo',
+    },
   },
-  mixe: {
+  ayuujk: {
     nav: {
       home: 'Jëën',
       team: 'Tu\'u',
@@ -558,6 +638,46 @@ export const translations: Record<Language, Translations> = {
       mixeSymphonyDesc: 'Bandas de viento que resuenan en las nubes.',
       sacredAltitude: 'Altitud Sagrada',
       sacredAltitudeDesc: 'Tradiciones preservadas en la cima de la sierra.',
+    },
+    community: {
+      title: 'Comunidad Mixe',
+      subtitle: 'Nuestras historias en fotos y videos',
+      searchPlaceholder: 'Buscar por etiquetas o título...',
+      uploadMedia: 'Publicar Foto/Video',
+      noMedia: 'Aún no hay publicaciones. ¡Sé el primero!',
+      postTitle: 'Título',
+      postDesc: 'Descripción',
+      postTags: 'Etiquetas (separadas por coma)',
+      postType: 'Tipo de contenido',
+      image: 'Imagen',
+      video: 'Video',
+      publish: 'Publicar',
+      publishing: 'Publicando...',
+      comments: 'Comentarios',
+      addComment: 'Añadir un comentario...',
+      postComment: 'Enviar',
+    },
+    contacts: {
+      title: 'Mis Contactos',
+      suggestions: 'Sugerencias',
+      addContact: 'Agregar',
+      pending: 'Pendiente',
+      accepted: 'Conectados',
+      noContacts: 'No tienes contactos aún. Busca a tus amigos.',
+      searchUsers: 'Buscar usuarios...',
+    },
+    videoCall: {
+      startCall: 'Iniciar Videollamada',
+      incomingCall: 'Llamada Entrante',
+      connecting: 'Conectando...',
+      endCall: 'Finalizar',
+      mic: 'Micrófono',
+      camera: 'Cámara',
+      groups: 'Grupos',
+      newGroup: 'Nuevo Grupo',
+      groupName: 'Nombre del Grupo',
+      members: 'Miembros',
+      createGroup: 'Crear Grupo',
     },
   },
 };

@@ -2,78 +2,151 @@
   "entities": {
     "NewsItem": {
       "title": "NewsItem",
-      "description": "A news article published by admins",
+      "description": "A news article",
       "type": "object",
       "properties": {
-        "title": { "type": "string", "description": "Title of the news article" },
-        "content": { "type": "string", "description": "Main content of the article" },
-        "author": { "type": "string", "description": "Name of the author" },
-        "date": { "type": "string", "format": "date-time", "description": "ISO 8601 date string" },
-        "imageUrl": { "type": "string", "description": "Optional image URL" },
-        "videoUrl": { "type": "string", "description": "Optional video URL" }
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "author": { "type": "string" },
+        "date": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "videoUrl": { "type": "string" }
       },
       "required": ["title", "content", "author", "date"]
     },
     "CommunityVideo": {
       "title": "CommunityVideo",
-      "description": "A video shared by the community",
+      "description": "A community video",
       "type": "object",
       "properties": {
-        "title": { "type": "string", "description": "Title of the video" },
-        "author": { "type": "string", "description": "Name of the author" },
-        "thumbnail": { "type": "string", "description": "URL of the video thumbnail" },
-        "price": { "type": "string", "description": "Price or suggested donation" },
-        "video_url": { "type": "string", "description": "URL of the video file" }
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "price": { "type": "string" },
+        "video_url": { "type": "string" },
+        "published": { "type": "boolean" }
       },
-      "required": ["title", "author", "thumbnail", "price", "video_url"]
+      "required": ["title", "author", "authorUid", "thumbnail", "price", "video_url", "published"]
     },
     "TeamMember": {
       "title": "TeamMember",
-      "description": "A member of the Vida Mixe TV team",
+      "description": "A team member",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "Full name of the team member" },
-        "role": { "type": "string", "description": "Role or position" },
-        "bio": { "type": "string", "description": "Short biography" },
-        "image": { "type": "string", "description": "Profile image URL" },
-        "icon": { "type": "string", "description": "Lucide icon name" },
-        "linkedin": { "type": "string", "description": "Optional LinkedIn URL" },
-        "twitter": { "type": "string", "description": "Optional Twitter URL" },
-        "github": { "type": "string", "description": "Optional GitHub URL" },
-        "email": { "type": "string", "description": "Optional email address" }
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "bio": { "type": "string" },
+        "image": { "type": "string" },
+        "icon": { "type": "string" },
+        "linkedin": { "type": "string" },
+        "twitter": { "type": "string" },
+        "github": { "type": "string" },
+        "email": { "type": "string" }
       },
       "required": ["name", "role", "bio", "image", "icon"]
     },
     "User": {
       "title": "User",
-      "description": "A user profile with role-based access",
+      "description": "A user profile",
       "type": "object",
       "properties": {
-        "uid": { "type": "string", "description": "Firebase Auth UID" },
-        "email": { "type": "string", "description": "User email address" },
-        "role": { "type": "string", "enum": ["admin", "user"], "description": "User role" },
-        "displayName": { "type": "string", "description": "Display name" },
-        "photoURL": { "type": "string", "description": "Profile photo URL" }
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" }
       },
-      "required": ["uid", "email", "role"]
+      "required": ["role", "email"]
+    },
+    "MediaItem": {
+      "title": "MediaItem",
+      "description": "A photo or video post",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["image", "video"] },
+        "url": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "authorUid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["type", "url", "authorUid", "createdAt"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A comment on a media item",
+      "type": "object",
+      "properties": {
+        "mediaId": { "type": "string" },
+        "text": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["mediaId", "text", "authorUid", "createdAt"]
+    },
+    "Contact": {
+      "title": "Contact",
+      "description": "A contact relationship between users",
+      "type": "object",
+      "properties": {
+        "users": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["pending", "accepted"] },
+        "initiatedBy": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["users", "status", "initiatedBy"]
+    },
+    "ChatGroup": {
+      "title": "ChatGroup",
+      "description": "A group for chat and video calls",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "members": { "type": "array", "items": { "type": "string" } },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastMessage": { "type": "string" }
+      },
+      "required": ["name", "members", "createdBy", "createdAt"]
     }
   },
   "firestore": {
     "news": {
       "schema": { "$ref": "#/entities/NewsItem" },
-      "description": "Collection of news articles"
+      "description": "News articles"
     },
     "community_videos": {
       "schema": { "$ref": "#/entities/CommunityVideo" },
-      "description": "Collection of community videos"
+      "description": "Community videos"
     },
     "team": {
       "schema": { "$ref": "#/entities/TeamMember" },
-      "description": "Collection of team members"
+      "description": "Team members"
     },
     "users": {
       "schema": { "$ref": "#/entities/User" },
-      "description": "Collection of user profiles and roles"
+      "description": "User profiles and roles"
+    },
+    "media": {
+      "schema": { "$ref": "#/entities/MediaItem" },
+      "description": "Photos and videos shared by users"
+    },
+    "comments": {
+      "schema": { "$ref": "#/entities/Comment" },
+      "description": "Comments on media posts"
+    },
+    "contacts": {
+      "schema": { "$ref": "#/entities/Contact" },
+      "description": "Contact relationships between users"
+    },
+    "chat_groups": {
+      "schema": { "$ref": "#/entities/ChatGroup" },
+      "description": "Shared chat groups"
     }
   }
 }

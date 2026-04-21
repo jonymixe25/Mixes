@@ -1,19 +1,22 @@
 import { Link, useLocation } from "react-router-dom";
-import { Mountain, MonitorPlay, Home, Languages, Globe, Users, ShieldCheck, LogIn, User, Video, LogOut, Settings, Newspaper } from "lucide-react";
+import { Mountain, MonitorPlay, Home, Languages, Globe, Users, ShieldCheck, LogIn, User, Video, LogOut, Settings, Newspaper, MessageSquare } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useUser } from "../contexts/UserContext";
 
 export default function Navbar() {
   const location = useLocation();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, tf } = useLanguage();
   const { user, loading, logout } = useUser();
 
   const navLinks = [
-    { path: "/", label: t("nav_home"), icon: Home },
-    { path: "/view", label: t("nav_view"), icon: MonitorPlay },
+    { path: "/", label: tf("nav_home"), icon: Home },
+    { path: "/view", label: tf("nav_view"), icon: MonitorPlay },
+    { path: "/galeria", label: tf("nav_gallery"), icon: Globe },
+    { path: "/contactos", label: tf("nav_contacts"), icon: Users },
+    { path: "/chats", label: tf("nav_chats"), icon: MessageSquare },
     { path: "/recordings", label: "Archivo", icon: Video },
-    { path: "/traductor", label: t("nav_translator"), icon: Languages },
-    { path: "/team", label: t("team_title"), icon: Users },
+    { path: "/traductor", label: tf("nav_translator"), icon: Languages },
+    { path: "/team", label: tf("team_title"), icon: Users },
   ];
 
   const adminLinks = [
@@ -88,7 +91,7 @@ export default function Navbar() {
               className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-white/5 text-brand-secondary border border-brand-secondary/30 hover:bg-brand-secondary/10 transition-all"
             >
               <Globe className="w-4 h-4" />
-              {t("lang_toggle")}
+              {tf("lang_toggle")}
             </button>
 
             {/* User Profile / Login */}
@@ -151,7 +154,7 @@ export default function Navbar() {
             <button
               onClick={toggleLanguage}
               className="p-2 rounded-full bg-brand-secondary/20 text-brand-secondary"
-              title={t("lang_toggle")}
+              title={tf("lang_toggle")}
             >
               <Globe className="w-5 h-5" />
             </button>

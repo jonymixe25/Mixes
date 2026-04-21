@@ -42,7 +42,6 @@ export default function MusicPlayer() {
   const [tracks, setTracks] = useState(TRACKS);
   
   const playerRef = useRef<any>(null);
-  const Player = ReactPlayer as any;
 
   const currentTrack = tracks[currentTrackIndex];
 
@@ -64,8 +63,10 @@ export default function MusicPlayer() {
     setIsMuted(!isMuted);
   };
 
-  const handleProgress = (state: { played: number }) => {
-    setProgress(state.played * 100);
+  const handleProgress = (state: any) => {
+    if (state && typeof state.played === 'number') {
+      setProgress(state.played * 100);
+    }
   };
 
   const handleEnded = () => {
@@ -242,22 +243,22 @@ export default function MusicPlayer() {
 
         {/* Hidden ReactPlayer */}
         <div className="hidden">
-          <Player
-            ref={playerRef}
-            url={currentTrack.url}
-            playing={isPlaying}
-            volume={volume}
-            muted={isMuted}
-            onProgress={(state: any) => handleProgress(state)}
-            onEnded={handleEnded}
-            width="0"
-            height="0"
-            config={{
+          {React.createElement(ReactPlayer as any, {
+            ref: playerRef,
+            url: currentTrack.url,
+            playing: isPlaying,
+            volume: volume,
+            muted: isMuted,
+            onProgress: handleProgress,
+            onEnded: handleEnded,
+            width: "0",
+            height: "0",
+            config: {
               youtube: {
                 playerVars: { showinfo: 0, controls: 0 }
               }
-            }}
-          />
+            }
+          })}
         </div>
       </div>
     </div>

@@ -12,60 +12,51 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  app.set('trust proxy', 1);
-  const PORT = 3000;
-  const httpServer = createServer(app);
   
-  // 1. Basic Middleware
+  // Enable CORS for all routes
   app.use(cors({
-    origin: true,
+    origin: [
+      "https://vidamixe.mx", 
+      "https://www.vidamixe.mx", 
+      "https://app-new-production-1af2.up.railway.app",
+      "http://localhost:3000"
+    ],
     methods: ["GET", "POST", "OPTIONS"],
     credentials: true
   }));
-  app.use(express.json({ limit: '10mb' }));
-
-  // 2. Logging Middleware
-  app.all("*", (req, res, next) => {
-    if (req.url.startsWith('/api') || req.url.startsWith('/socket.io')) {
-      console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    }
-    next();
-  });
-
-  // 3. Socket.io
+  
+  app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
+  const PORT = 3000;
+  const httpServer = createServer(app);
+  
   const io = new Server(httpServer, {
-    cors: { 
-      origin: (origin, callback) => {
-        // En desarrollo o con proxies, permitimos cualquier origen con credenciales
-        callback(null, true);
-      },
-      methods: ["GET", "POST"], 
-      credentials: true 
+    cors: {
+      origin: [
+        "https://vidamixe.mx", 
+        "https://www.vidamixe.mx", 
+        "https://app-new-production-1af2.up.railway.app",
+        "http://localhost:3000", 
+        "*"
+      ],
+      methods: ["GET", "POST"]
     },
     pingTimeout: 60000,
-    pingInterval: 25000,
-    path: "/socket.io/",
-    addTrailingSlash: true, // Cambiado a true para ver si mejora la compatibilidad
-    connectTimeout: 45000,
+    pingInterval: 25000
   });
 
-  // Diagnóstico de errores de motor (importante para "server error")
-  io.engine.on("connection_error", (err) => {
-    console.error(`[SOCKET ERROR] Code ${err.code}: ${err.message}`);
-    console.error(`[SOCKET ERROR] Context:`, err.context);
-  });
-
+  // Almacenar broadcasters: socket.id -> { id, name, viewers }
   const activeBroadcasters = new Map<string, { id: string, name: string, viewers: number }>();
   const chatHistory: any[] = [];
+  // Almacenar usuarios conectados: socket.id -> { username, id }
   const users: { [id: string]: { username: string; id: string } } = {};
 
   const emitUserList = () => {
-    io.emit("user_list", Object.values(users));
+    const userList = Object.values(users);
+    io.emit("user_list", userList);
   };
 
   io.on("connection", (socket) => {
-    console.log("Socket client connected:", socket.id);
-    
+    console.log("Client connected:", socket.id);
     socket.on("broadcaster", (streamName: string) => {
       activeBroadcasters.set(socket.id, { 
         id: socket.id, 
@@ -85,11 +76,13 @@ async function startServer() {
         socket.to(broadcasterId).emit("watcher", socket.id);
         b.viewers++;
         io.emit("broadcaster_list", Array.from(activeBroadcasters.values()));
+        // Emitir conteo específico al broadcaster
         io.to(broadcasterId).emit("viewers_count", b.viewers);
       }
       socket.emit("chat_history", chatHistory);
     });
 
+    // Registro de usuario para el chat y lista de espectadores
     socket.on("register_user", (username: string) => {
       users[socket.id] = { username, id: socket.id };
       emitUserList();
@@ -97,101 +90,107 @@ async function startServer() {
 
     socket.on("chat_message", (message) => {
       chatHistory.push(message);
-      if (chatHistory.length > 100) chatHistory.shift();
+      if (chatHistory.length > 100) chatHistory.shift(); // Keep last 100 messages
       io.emit("chat_message", message);
     });
 
+    socket.on("delete_message", (messageId) => {
+      // Solo el broadcaster de la sala actual o un admin podría borrar
+      // Por simplicidad, permitimos si el socket.id está en activeBroadcasters
+      if (activeBroadcasters.has(socket.id)) {
+        const index = chatHistory.findIndex(m => m.id === messageId);
+        if (index !== -1) {
+          chatHistory.splice(index, 1);
+        }
+        io.emit("message_deleted", messageId);
+      }
+    });
+
     socket.on("stop_broadcasting", () => {
-      activeBroadcasters.delete(socket.id);
-      io.emit("broadcaster_list", Array.from(activeBroadcasters.values()));
+      if (activeBroadcasters.has(socket.id)) {
+        activeBroadcasters.delete(socket.id);
+        io.emit("broadcaster_list", Array.from(activeBroadcasters.values()));
+      }
+    });
+
+    // Private Signaling
+    socket.on("join_room", (roomId: string) => {
+      socket.join(roomId);
+      console.log(`Socket ${socket.id} joined room ${roomId}`);
+    });
+
+    socket.on("offer", (data: { target: string, caller: string, sdp: any }) => {
+      io.to(data.target).emit("offer", { caller: socket.id, sdp: data.sdp, callerUid: data.caller });
+    });
+
+    socket.on("answer", (data: { target: string, sdp: any }) => {
+      io.to(data.target).emit("answer", { answerer: socket.id, sdp: data.sdp });
+    });
+
+    socket.on("ice-candidate", (data: { target: string, candidate: any }) => {
+      io.to(data.target).emit("ice-candidate", { candidate: data.candidate, from: socket.id });
     });
 
     socket.on("disconnect", () => {
-      delete users[socket.id];
-      emitUserList();
+      // Eliminar usuario de la lista
+      if (users[socket.id]) {
+        delete users[socket.id];
+        emitUserList();
+      }
+
       if (activeBroadcasters.has(socket.id)) {
         activeBroadcasters.delete(socket.id);
         socket.broadcast.emit("disconnectPeer", socket.id);
         io.emit("broadcaster_list", Array.from(activeBroadcasters.values()));
+      } else {
+        // Reducir viewers de todos los broadcasters donde este socket estaba mirando
+        activeBroadcasters.forEach(b => {
+          socket.to(b.id).emit("disconnectPeer", socket.id);
+          // Opcional: decrementar viewers si sabemos que estaba mirando
+          // Por simplicidad, el cliente debería avisar al salir de una sala
+        });
       }
     });
-    
-    // Signaling for 1v1 Calls
-    socket.on("call_user", ({ to, fromName }) => {
-      io.to(to).emit("incoming_call", { from: socket.id, fromName });
-    });
-    socket.on("accept_call", ({ to, roomName }) => {
-      io.to(to).emit("call_accepted", { from: socket.id, roomName });
-    });
-    socket.on("reject_call", ({ to }) => {
-      io.to(to).emit("call_rejected", { from: socket.id });
-    });
-    socket.on("end_call", ({ to }) => {
-      io.to(to).emit("call_ended", { from: socket.id });
-    });
   });
 
-  // 4. API Routes
-  const api = express.Router();
-
-  api.get("/health", (req, res) => {
-    res.json({ status: "ok", version: "1.1.7", env: process.env.NODE_ENV });
+  // API routes FIRST
+  app.get("/api/health", (req, res) => {
+    console.log("GET /api/health");
+    res.json({ status: "ok" });
   });
 
-  api.post("/livekit/token", async (req, res) => {
+  app.post("/api/livekit/token", async (req, res) => {
     try {
       const { roomName, participantName, isBroadcaster } = req.body;
-      const apiKey = process.env.LIVEKIT_API_KEY?.trim();
-      const apiSecret = process.env.LIVEKIT_API_SECRET?.trim();
-      let rawUrl = process.env.LIVEKIT_URL?.trim() || "";
-      
-      console.log(`[DEBUG] Generando token para sala: ${roomName}. Usando API Key: ${apiKey?.substring(0, 4)}...`);
-      
-      // Default fallback
-      let serverUrl = 'wss://vidamixe-kxkfgn4j.livekit.cloud';
-
-      if (rawUrl) {
-        // If it starts with a hyphen or doesn't have protocol, it might be a malformed hostname
-        if (rawUrl.startsWith('-')) {
-          console.warn(`[WARNING] LIVEKIT_URL seems malformed: "${rawUrl}". Using default.`);
-        } else if (!rawUrl.startsWith('ws://') && !rawUrl.startsWith('wss://')) {
-          // If it's a hostname without protocol, add wss://
-          serverUrl = `wss://${rawUrl}`;
-          console.log(`[DEBUG] Added protocol to LIVEKIT_URL: ${serverUrl}`);
-        } else {
-          serverUrl = rawUrl;
-        }
-      }
-
-      if (!apiKey || !apiSecret) {
-        return res.status(500).json({ error: "Credenciales de LiveKit no configuradas en el servidor. Revisa los Ajustes (Settings)." });
-      }
+      const apiKey = process.env.LIVEKIT_API_KEY || 'APISBhav5rpQHrE';
+      const apiSecret = process.env.LIVEKIT_API_SECRET || 'eJnJBce2ysaavhaIJALPN10WfFFA6UqCfY9OJiOVvd4B';
 
       const at = new AccessToken(apiKey, apiSecret, {
-        identity: (participantName as string | undefined)?.trim() || `user-${Math.floor(Math.random() * 10000)}`,
+        identity: participantName || `user-${Math.floor(Math.random() * 10000)}`,
       });
 
       at.addGrant({
         roomJoin: true,
         room: roomName,
-        canPublish: !!isBroadcaster,
+        canPublish: isBroadcaster,
         canSubscribe: true,
       });
 
       const token = await at.toJwt();
-      res.json({ 
-        token, 
-        serverUrl
-      });
-    } catch (error: any) {
-      console.error("Token API Error:", error);
-      res.status(500).json({ error: error.message });
+      res.json({ token });
+    } catch (error) {
+      console.error("Error generating token:", error);
+      res.status(500).json({ error: "Failed to generate token" });
     }
   });
 
-  app.use("/api", api);
+  // Catch-all for API routes to prevent falling through to Vite
+  app.all("/api/*", (req, res) => {
+    console.log(`404 API: ${req.method} ${req.url}`);
+    res.status(404).json({ error: `Ruta de API no encontrada: ${req.url}` });
+  });
 
-  // 5. Client Serving
+  // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -199,22 +198,18 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(__dirname, "dist");
-    app.use(express.static(distPath));
+    app.use(express.static("dist"));
     app.get("*", (req, res) => {
-      if (req.url.startsWith('/api')) {
-        return res.status(404).json({ error: "Ruta de API no encontrada" });
-      }
-      res.sendFile(path.join(distPath, "index.html"));
+      res.sendFile(path.resolve(__dirname, "dist", "index.html"));
     });
   }
 
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`[READY] Server running on port ${PORT} in ${process.env.NODE_ENV || 'dev'} mode`);
+    console.log(`Server running on port ${PORT}`);
   });
 }
 
 startServer().catch(err => {
-  console.error("Fatal startup error:", err);
+  console.error("Failed to start server:", err);
   process.exit(1);
 });

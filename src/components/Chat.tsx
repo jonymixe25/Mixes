@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
-import { Send, Trash2, User, Loader2, ShieldAlert, Users } from "lucide-react";
+import { Send, Trash2, User, Loader2, ShieldAlert } from "lucide-react";
 import { moderateContent } from "../services/moderationService";
 
 export interface ChatMessage {
@@ -23,8 +23,6 @@ export default function Chat({ socket, isHost = false, transparent = false }: Ch
   const [moderationError, setModerationError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [isUsernameSet, setIsUsernameSet] = useState(isHost);
-  const [activeUsers, setActiveUsers] = useState<{ username: string; id: string }[]>([]);
-  const [showUserList, setShowUserList] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,15 +46,10 @@ export default function Chat({ socket, isHost = false, transparent = false }: Ch
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
     });
 
-    socket.on("user_list", (users: { username: string; id: string }[]) => {
-      setActiveUsers(users);
-    });
-
     return () => {
       socket.off("chat_history");
       socket.off("chat_message");
       socket.off("message_deleted");
-      socket.off("user_list");
     };
   }, [socket]);
 
@@ -146,80 +139,46 @@ export default function Chat({ socket, isHost = false, transparent = false }: Ch
 
   return (
     <div className={`flex flex-col h-full ${transparent ? 'bg-black/50 backdrop-blur-sm' : 'bg-zinc-900 border-l border-zinc-800'}`}>
-      <div className={`p-4 border-b ${transparent ? 'border-white/10 bg-black/20' : 'border-zinc-800 bg-zinc-900/50'} flex items-center justify-between`}>
+      <div className={`p-4 border-b ${transparent ? 'border-white/10 bg-black/20' : 'border-zinc-800 bg-zinc-900/50'}`}>
         <h3 className="font-semibold flex items-center gap-2">
           Chat en Vivo
           <span className="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded-full">
             Online
           </span>
         </h3>
-        <button 
-          onClick={() => setShowUserList(!showUserList)}
-          className={`p-2 rounded-lg transition-colors ${showUserList ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:bg-zinc-800'}`}
-          title="Ver espectadores"
-        >
-          <Users className="w-4 h-4" />
-        </button>
       </div>
 
-      <div className="flex-1 relative overflow-hidden flex flex-col">
-        {showUserList ? (
-          <div className="absolute inset-0 z-10 bg-zinc-900 p-4 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Espectadores ({activeUsers.length})</h4>
-              <button onClick={() => setShowUserList(false)} className="text-xs text-indigo-400 hover:underline">Volver al chat</button>
-            </div>
-            <div className="space-y-2">
-              {activeUsers.map((user) => (
-                <div key={user.id} className="flex items-center gap-2 p-2 rounded-lg bg-zinc-950/50 border border-zinc-800">
-                  <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm text-zinc-300">{user.username}</span>
-                  {user.username === 'Anfitrión' && (
-                    <span className="ml-auto text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-bold">Host</span>
-                  )}
-                </div>
-              ))}
-              {activeUsers.length === 0 && (
-                <p className="text-center text-zinc-600 text-xs py-8 italic">No hay otros usuarios registrados.</p>
-              )}
-            </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-zinc-500 text-sm">
+            No hay mensajes aún. ¡Sé el primero en saludar!
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-zinc-500 text-sm">
-                No hay mensajes aún. ¡Sé el primero en saludar!
+          messages.map((msg) => (
+            <div key={msg.id} className="group relative pr-8">
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className={`font-medium text-sm ${msg.username === 'Anfitrión' ? 'text-emerald-400' : 'text-indigo-400'}`}>
+                  {msg.username}
+                </span>
+                <span className="text-xs text-zinc-600">
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
-            ) : (
-              messages.map((msg) => (
-                <div key={msg.id} className="group relative pr-8">
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className={`font-medium text-sm ${msg.username === 'Anfitrión' ? 'text-emerald-400' : 'text-indigo-400'}`}>
-                      {msg.username}
-                    </span>
-                    <span className="text-xs text-zinc-600">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <p className="text-zinc-300 text-sm break-words">{msg.text}</p>
-                  
-                  {isHost && (
-                    <button
-                      onClick={() => handleDeleteMessage(msg.id)}
-                      className="absolute right-0 top-0 p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                      title="Eliminar mensaje"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              <p className="text-zinc-300 text-sm break-words">{msg.text}</p>
+              
+              {isHost && (
+                <button
+                  onClick={() => handleDeleteMessage(msg.id)}
+                  className="absolute right-0 top-0 p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                  title="Eliminar mensaje"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          ))
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className={`p-4 border-t ${transparent ? 'bg-black/20 border-white/10' : 'bg-zinc-900 border-zinc-800'}`}>

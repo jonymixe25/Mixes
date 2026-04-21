@@ -3,10 +3,9 @@ import { useUser } from "../contexts/UserContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  adminOnly?: boolean;
 }
 
-export default function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useUser();
   const location = useLocation();
 
@@ -20,10 +19,6 @@ export default function ProtectedRoute({ children, adminOnly = false }: Protecte
 
   if (!user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
-  }
-
-  if (adminOnly && !user.isAdmin) {
-    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

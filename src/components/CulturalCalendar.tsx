@@ -27,7 +27,7 @@ const EVENTS = [
 ];
 
 export default function CulturalCalendar() {
-  const { t } = useLanguage();
+  const { tf } = useLanguage();
 
   return (
     <div className="bg-brand-surface border border-white/5 rounded-3xl p-8">
@@ -36,8 +36,8 @@ export default function CulturalCalendar() {
           <Calendar className="w-6 h-6" />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-white">{t("calendar_title")}</h3>
-          <p className="text-sm text-neutral-500">{t("calendar_subtitle")}</p>
+          <h3 className="text-xl font-bold text-white">{tf("calendar_title")}</h3>
+          <p className="text-sm text-neutral-500">{tf("calendar_subtitle")}</p>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function CulturalCalendar() {
                 {event.type === "event_concert" && <Music className="w-3 h-3" />}
                 {event.type === "event_fiesta" && <MapPin className="w-3 h-3" />}
                 {event.type === "event_assembly" && <Users className="w-3 h-3" />}
-                {t(event.type)}
+                {tf(event.type)}
               </div>
               <h4 className="text-white font-semibold group-hover:text-brand-primary transition-colors">
                 {event.title}

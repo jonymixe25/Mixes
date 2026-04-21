@@ -1,8 +1,6 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { LanguageProvider } from "./context/LanguageContext";
 import { UserProvider } from "./contexts/UserContext";
-import { SocketProvider } from "./contexts/SocketContext";
-import CallOverlay from "./components/CallOverlay";
 import Home from "./pages/Home";
 import Broadcast from "./pages/Broadcast";
 import View from "./pages/View";
@@ -12,6 +10,11 @@ import AdminUsers from "./pages/AdminUsers";
 import Translator from "./pages/Translator";
 import Team from "./pages/Team";
 import Auth from "./pages/Auth";
+import Gallery from "./pages/Gallery";
+import PostMedia from "./pages/PostMedia";
+import Contacts from "./pages/Contacts";
+import ChatGroups from "./pages/ChatGroups";
+import VideoCallRoom from "./pages/VideoCallRoom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -19,25 +22,45 @@ import ProtectedRoute from "./components/ProtectedRoute";
 export default function App() {
   return (
     <UserProvider>
-      <SocketProvider>
-        <LanguageProvider>
-          <BrowserRouter>
-            <div className="min-h-screen bg-brand-bg flex flex-col">
-              <Navbar />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/transmitir" element={<Broadcast />} />
+      <LanguageProvider>
+        <BrowserRouter>
+          <div className="min-h-screen bg-brand-bg flex flex-col">
+            <Navbar />
+            <main className="flex-1">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/transmitir" element={<Broadcast />} />
                 <Route path="/view" element={<View />} />
                 <Route path="/vista" element={<View />} />
                 <Route path="/recordings" element={<Recordings />} />
+                <Route path="/galeria" element={<Gallery />} />
+                <Route path="/publicar" element={
+                  <ProtectedRoute>
+                    <PostMedia />
+                  </ProtectedRoute>
+                } />
+                <Route path="/contactos" element={
+                  <ProtectedRoute>
+                    <Contacts />
+                  </ProtectedRoute>
+                } />
+                <Route path="/chats" element={
+                  <ProtectedRoute>
+                    <ChatGroups />
+                  </ProtectedRoute>
+                } />
+                <Route path="/videollamada/:callId" element={
+                  <ProtectedRoute>
+                    <VideoCallRoom />
+                  </ProtectedRoute>
+                } />
                 <Route path="/admin-news" element={
-                  <ProtectedRoute adminOnly>
+                  <ProtectedRoute>
                     <AdminNews />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin-users" element={
-                  <ProtectedRoute adminOnly>
+                  <ProtectedRoute>
                     <AdminUsers />
                   </ProtectedRoute>
                 } />
@@ -61,11 +84,9 @@ export default function App() {
               </Routes>
             </main>
             <Footer />
-            <CallOverlay />
           </div>
         </BrowserRouter>
       </LanguageProvider>
-    </SocketProvider>
-  </UserProvider>
+    </UserProvider>
   );
 }

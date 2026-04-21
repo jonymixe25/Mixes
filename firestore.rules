@@ -1,138 +1,67 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: users
-    // Fields:
-    //   - uid: string (required)
-    //   - email: string (required)
-    //   - role: string (required, enum: ['admin', 'user'])
-    //   - displayName: string (optional)
-    //   - photoURL: string (optional)
-    //
-    // Collection: news
-    // Fields:
-    //   - title: string (required)
-    //   - content: string (required)
-    //   - author: string (required)
-    //   - date: string (required, ISO 8601)
-    //   - imageUrl: string (optional)
-    //   - videoUrl: string (optional)
-    //
-    // Collection: community_videos
-    // Fields:
-    //   - title: string (required)
-    //   - author: string (required)
-    //   - thumbnail: string (required)
-    //   - price: string (required)
-    //   - video_url: string (required)
-    //
-    // Collection: team
-    // Fields:
-    //   - name: string (required)
-    //   - role: string (required)
-    //   - bio: string (required)
-    //   - image: string (required)
-    //   - icon: string (required)
-    //   - linkedin: string (optional)
-    //   - twitter: string (optional)
-    //   - github: string (optional)
-    //   - email: string (optional)
-    //
-    // ===============================================================
-
-    // ===============================================================
-    // Helper Functions
-    // ===============================================================
-    
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
     function isAdmin() {
-      return isAuthenticated() && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        (request.auth.token.email == "ayuuktv42@gmail.com" && request.auth.token.email_verified == true) ||
-        (request.auth.token.email == "mixecultura25@gmail.com" && request.auth.token.email_verified == true)
-      );
+      return isAuthenticated() && request.auth.token.email == "mixecultura25@gmail.com";
     }
-
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email', 'role']) &&
-             data.uid is string && data.uid.size() > 0 &&
-             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
-             data.role in ['admin', 'user'] &&
-             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
-             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() < 500));
-    }
-
-    function isValidNews(data) {
-      return data.keys().hasAll(['title', 'content', 'author', 'date']) &&
-             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
-             data.content is string && data.content.size() > 0 && data.content.size() < 10000 &&
-             data.author is string && data.author.size() > 0 && data.author.size() < 100 &&
-             data.date is string && data.date.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$") &&
-             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() < 500)) &&
-             (!('videoUrl' in data) || (data.videoUrl is string && data.videoUrl.size() < 500));
-    }
-
-    function isValidVideo(data) {
-      return data.keys().hasAll(['title', 'author', 'thumbnail', 'price', 'video_url']) &&
-             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
-             data.author is string && data.author.size() > 0 && data.author.size() < 100 &&
-             data.thumbnail is string && data.thumbnail.size() < 500 &&
-             data.price is string && data.price.size() < 50 &&
-             data.video_url is string && data.video_url.size() < 500;
-    }
-
-    function isValidTeamMember(data) {
-      return data.keys().hasAll(['name', 'role', 'bio', 'image', 'icon']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.role is string && data.role.size() > 0 && data.role.size() < 100 &&
-             data.bio is string && data.bio.size() > 0 && data.bio.size() < 2000 &&
-             data.image is string && data.image.size() < 500 &&
-             data.icon is string && data.icon.size() < 50;
-    }
-
-    // ===============================================================
-    // Rules
-    // ===============================================================
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'user';
-      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role) || isAdmin();
-      allow delete: if isAdmin();
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
 
     match /news/{newsId} {
       allow read: if true;
-      allow create, update: if isAdmin() && isValidNews(request.resource.data);
-      allow delete: if isAdmin();
+      allow write: if isAdmin();
     }
 
     match /community_videos/{videoId} {
       allow read: if true;
-      allow create, update: if isAdmin() && isValidVideo(request.resource.data);
-      allow delete: if isAdmin();
+      allow write: if isAdmin();
     }
 
     match /team/{memberId} {
       allow read: if true;
-      allow create, update: if isAdmin() && isValidTeamMember(request.resource.data);
-      allow delete: if isAdmin();
+      allow write: if isAdmin();
     }
 
-    // Default deny
+    match /media/{mediaId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.authorUid == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (resource.data.authorUid == request.auth.uid || isAdmin());
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.authorUid == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (resource.data.authorUid == request.auth.uid || isAdmin());
+    }
+
+    match /contacts/{contactId} {
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.users);
+      allow create: if isAuthenticated() && (request.auth.uid in request.resource.data.users);
+      allow update: if isAuthenticated() && (request.auth.uid in resource.data.users);
+      allow delete: if isAuthenticated() && (request.auth.uid in resource.data.users);
+    }
+
+    match /chat_groups/{groupId} {
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.members);
+      allow create: if isAuthenticated() && (request.auth.uid in request.resource.data.members);
+      allow update: if isAuthenticated() && (request.auth.uid in resource.data.members);
+      
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chat_groups/$(groupId)).data.members);
+        allow create: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chat_groups/$(groupId)).data.members);
+      }
+    }
+    
+    // Fallback for any other collection
     match /{path=**} {
-      allow read, write: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

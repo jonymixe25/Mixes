@@ -31,7 +31,7 @@ const ROLE_ICONS: Record<string, any> = {
 export default function Team() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const { t } = useLanguage();
+  const { t, tf } = useLanguage();
   const { user, loading: authLoading } = useUser();
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function Team() {
     <ErrorBoundary>
       <div className="min-h-screen bg-brand-bg text-neutral-50 font-sans">
         <Helmet>
-          <title>{t("team_title")} | Vida Mixe TV</title>
+          <title>{tf("team_title")} | Vida Mixe TV</title>
           <meta name="description" content="Conoce a las personas detrás de Vida Mixe TV, trabajando para difundir la cultura Ayuuk." />
         </Helmet>
 
@@ -78,10 +78,10 @@ export default function Team() {
               <span className="text-sm font-medium tracking-wide uppercase">Gente de las Nubes</span>
             </div>
             <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white">
-              {t("team_title").split(' ')[0]} <span className="text-brand-primary">{t("team_title").split(' ')[1]}</span>
+              {tf("team_title").split(' ')[0]} <span className="text-brand-primary">{tf("team_title").split(' ')[1]}</span>
             </h1>
             <p className="text-xl text-neutral-400 font-light leading-relaxed">
-              {t("team_subtitle")}
+              {tf("team_subtitle")}
             </p>
           </div>
         </div>
