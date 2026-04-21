@@ -88,8 +88,21 @@ export default function Broadcast() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Error al obtener token (${response.status}): ${errorData.error || 'Servidor no respondió correctamente'}`);
+        let errorMessage = 'Servidor no respondió correctamente';
+        try {
+          const text = await response.text();
+          try {
+            const errorData = JSON.parse(text);
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            console.error("Respuesta no-JSON recibida:", text.substring(0, 200));
+            if (response.status === 404) errorMessage = "Ruta de API no encontrada (404). El servidor podría estar reiniciándose o no ser compatible con el dominio actual.";
+            else if (response.status >= 500) errorMessage = "Error interno del servidor (500). Revisa los logs.";
+          }
+        } catch (e) {
+          errorMessage = "No se pudo leer la respuesta del servidor.";
+        }
+        throw new Error(`Error al obtener token (${response.status}): ${errorMessage}`);
       }
       
       const { token, serverUrl } = await response.json();
@@ -420,7 +433,7 @@ export default function Broadcast() {
                       <span className="text-[8px] text-red-500/50 animate-pulse">(Error de Red)</span>
                     )}
                   </div>
-                  <h2 className="font-bold text-white leading-tight">Panel de Transmisión v1.0.8</h2>
+                  <h2 className="font-bold text-white leading-tight">Panel de Transmisión v1.1.0</h2>
                   <p className="text-[10px] text-neutral-500 uppercase tracking-widest">{user?.name || "Locutor"}</p>
                 </div>
               </div>

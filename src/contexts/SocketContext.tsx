@@ -15,18 +15,19 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // Explicitly use websocket transport for better reliability in proxied environments
-    // Disable cookies to avoid sticky session issues in serverless
+    // Re-enable polling first for discovery, then upgrade to websocket
+    // This is more resilient to varied proxy/firewall environments (latam mobile networks, extra proxies)
     const s = io({
-      transports: ["websocket"],
-      reconnectionAttempts: 10,
+      transports: ["polling", "websocket"],
+      reconnectionAttempts: 15,
       reconnectionDelay: 1000,
-      timeout: 20000,
+      timeout: 30000,
+      autoConnect: true,
     });
     setSocket(s);
 
     s.on("connect", () => {
-      console.log("Socket.io connected successfully:", s.id);
+      console.log(`Socket.io unido con éxito! ID: ${s.id} | Transporte: ${s.io.engine.transport.name}`);
       setConnected(true);
     });
     
@@ -37,7 +38,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     s.on("connect_error", (err) => {
       console.error("Socket.io connection error detail:", err.message);
-      // Fallback to polling if websocket fails (optional, but let's stick to WS for sexmixe.lat)
+    });
+
+    // Added event to track transport upgrades
+    s.io.engine.on("upgrade", (transport) => {
+      console.log("Socket.io transport upgraded to:", transport.name);
     });
 
     return () => {

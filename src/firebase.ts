@@ -16,6 +16,8 @@ export const loginWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const logout = () => signOut(auth);
 
 // Test Connection
+// Disabled for production to avoid confusing users with transient connection errors
+/*
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
@@ -28,6 +30,7 @@ async function testConnection() {
   }
 }
 testConnection();
+*/
 
 // Types
 export interface TeamMember {

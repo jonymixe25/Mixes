@@ -156,10 +156,13 @@ async function startServer() {
     });
   });
 
-  // API routes FIRST
+  app.all("/api/*", (req, res, next) => {
+    console.log(`API Request: ${req.method} ${req.url}`);
+    next();
+  });
+
   app.get("/api/health", (req, res) => {
-    console.log("GET /api/health");
-    res.json({ status: "ok" });
+    res.json({ status: "ok", time: new Date().toISOString() });
   });
 
   app.post("/api/livekit/token", async (req, res) => {
@@ -214,10 +217,12 @@ async function startServer() {
       appType: "spa",
     });
     app.use(vite.middlewares);
-  } else {
-    app.use(express.static("dist"));
+    } else {
+    const distPath = path.resolve(process.cwd(), "dist");
+    console.log(`Serving static files from: ${distPath}`);
+    app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.resolve(__dirname, "dist", "index.html"));
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
