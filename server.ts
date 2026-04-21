@@ -38,11 +38,14 @@ async function startServer() {
   
   const io = new Server(httpServer, {
     cors: {
-      origin: true, // Allow all origins
-      methods: ["GET", "POST"]
+      origin: true, 
+      methods: ["GET", "POST"],
+      credentials: true
     },
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
+    connectTimeout: 45000,
+    allowEIO3: true
   });
 
   // Almacenar broadcasters: socket.id -> { id, name, viewers }

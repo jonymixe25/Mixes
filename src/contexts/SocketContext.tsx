@@ -15,11 +15,30 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const s = io();
+    // Explicitly use websocket transport for better reliability in proxied environments
+    // Disable cookies to avoid sticky session issues in serverless
+    const s = io({
+      transports: ["websocket"],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+    });
     setSocket(s);
 
-    s.on("connect", () => setConnected(true));
-    s.on("disconnect", () => setConnected(false));
+    s.on("connect", () => {
+      console.log("Socket.io connected successfully:", s.id);
+      setConnected(true);
+    });
+    
+    s.on("disconnect", (reason) => {
+      console.log("Socket.io disconnected:", reason);
+      setConnected(false);
+    });
+
+    s.on("connect_error", (err) => {
+      console.error("Socket.io connection error detail:", err.message);
+      // Fallback to polling if websocket fails (optional, but let's stick to WS for sexmixe.lat)
+    });
 
     return () => {
       s.disconnect();

@@ -411,7 +411,16 @@ export default function Broadcast() {
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-white">Panel de Transmisión v1.0.5</h2>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className={`w-1.5 h-1.5 rounded-full ${socketConnected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-red-500 animate-pulse'}`}></div>
+                    <span className={`text-[9px] font-bold uppercase tracking-widest ${socketConnected ? 'text-green-500' : 'text-red-500'}`}>
+                      {socketConnected ? 'Servidor Online' : 'Desconectado'}
+                    </span>
+                    {!socketConnected && (
+                      <span className="text-[8px] text-red-500/50 animate-pulse">(Error de Red)</span>
+                    )}
+                  </div>
+                  <h2 className="font-bold text-white leading-tight">Panel de Transmisión v1.0.8</h2>
                   <p className="text-[10px] text-neutral-500 uppercase tracking-widest">{user?.name || "Locutor"}</p>
                 </div>
               </div>
