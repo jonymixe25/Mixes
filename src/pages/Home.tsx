@@ -9,6 +9,7 @@ import { getRecordings, SavedRecording } from "../utils/videoStorage";
 import { Video, MonitorPlay, Mountain, CloudFog, Users, MessageSquare, Newspaper, Music, MapPin, X, Play, Sparkles, ArrowRight, ChevronRight, Upload, Image as ImageIcon } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useUser } from "../contexts/UserContext";
+import { useSocket } from "../contexts/SocketContext";
 import { db, handleFirestoreError, OperationType } from "../firebase";
 import { collection, onSnapshot, addDoc } from "firebase/firestore";
 
@@ -40,6 +41,7 @@ export default function Home() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const { t } = useLanguage();
   const { user, loading: authLoading } = useUser();
+  const { socket } = useSocket();
 
   const fetchNews = () => {
     return onSnapshot(collection(db, "news"), (snapshot) => {
@@ -74,13 +76,17 @@ export default function Home() {
     unsubscribeNews = fetchNews();
     unsubscribeVideos = fetchVideos();
 
-    // Check if anyone is live
-    const socketUrl = getSocketUrl();
-    const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
-    socket.on("connect", () => socket.emit("get_broadcasters"));
-    socket.on("broadcaster_list", (list: any[]) => {
+    const handleBroadcasterList = (list: any[]) => {
       setIsLive(list.length > 0);
-    });
+    };
+
+    if (socket) {
+      if (user) {
+        socket.emit("register_user", user.name);
+      }
+      socket.on("broadcaster_list", handleBroadcasterList);
+      socket.emit("get_broadcasters");
+    }
 
     // Load random recording
     const loadRandomRecording = async () => {
@@ -102,10 +108,12 @@ export default function Home() {
     return () => { 
       if (unsubscribeNews) unsubscribeNews();
       if (unsubscribeVideos) unsubscribeVideos();
-      socket.disconnect(); 
+      if (socket) {
+        socket.off("broadcaster_list", handleBroadcasterList);
+      }
       if (videoUrl) URL.revokeObjectURL(videoUrl);
     };
-  }, []);
+  }, [socket, user]);
 
   return (
     <div className="min-h-screen bg-brand-bg text-neutral-50 flex flex-col font-sans selection:bg-brand-primary selection:text-white">

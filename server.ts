@@ -97,6 +97,23 @@ async function startServer() {
       emitUserList();
     });
 
+    // Signaling for 1v1 Calls
+    socket.on("call_user", ({ to, fromName }) => {
+      io.to(to).emit("incoming_call", { from: socket.id, fromName });
+    });
+
+    socket.on("accept_call", ({ to, roomName }) => {
+      io.to(to).emit("call_accepted", { from: socket.id, roomName });
+    });
+
+    socket.on("reject_call", ({ to }) => {
+      io.to(to).emit("call_rejected", { from: socket.id });
+    });
+
+    socket.on("end_call", ({ to }) => {
+      io.to(to).emit("call_ended", { from: socket.id });
+    });
+
     socket.on("chat_message", (message) => {
       chatHistory.push(message);
       if (chatHistory.length > 100) chatHistory.shift(); // Keep last 100 messages
@@ -172,7 +189,10 @@ async function startServer() {
       });
 
       const token = await at.toJwt();
-      res.json({ token });
+      res.json({ 
+        token, 
+        serverUrl: process.env.LIVEKIT_URL || 'wss://new-app-6tu2ilh8.livekit.cloud' 
+      });
     } catch (error) {
       console.error("Error generating token:", error);
       res.status(500).json({ error: "Failed to generate token" });

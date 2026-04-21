@@ -1,16 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
-import { Video, Mic, MicOff, VideoOff, Settings, Users, Power, ShieldCheck, LogOut, Circle, Square, Loader2 } from "lucide-react";
+import { Video, Mic, MicOff, VideoOff, Settings, Users, User, Power, ShieldCheck, LogOut, Circle, Square, Loader2, Phone, PhoneCall } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Room, RoomEvent, Track, createLocalTracks, LocalVideoTrack, LocalAudioTrack } from "livekit-client";
 import { useUser } from "../contexts/UserContext";
+import { useSocket } from "../contexts/SocketContext";
 import Chat from "../components/Chat";
 
 import { saveRecording } from "../utils/videoStorage";
 
 export default function Broadcast() {
   const { user, loading: userLoading, logout } = useUser();
+  const { socket, connected: socketConnected } = useSocket();
   const [streamName, setStreamName] = useState("");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
@@ -18,11 +20,11 @@ export default function Broadcast() {
   const [isLive, setIsLive] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [socketStatus, setSocketStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [connecting, setConnecting] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [showUsers, setShowUsers] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
-  const socketRef = useRef<Socket | null>(null);
   const roomRef = useRef<Room | null>(null);
   const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
   const localAudioTrackRef = useRef<LocalAudioTrack | null>(null);
@@ -33,23 +35,33 @@ export default function Broadcast() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const socket = io();
-    socketRef.current = socket;
+    if (!socket) return;
 
-    socket.on("connect", () => setSocketStatus("connected"));
-    socket.on("disconnect", () => setSocketStatus("disconnected"));
-    socket.on("connect_error", () => setSocketStatus("disconnected"));
+    if (user) {
+      socket.emit("register_user", user.name);
+    }
 
     socket.on("viewers_count", (count: number) => {
       setViewers(count);
     });
 
+    socket.on("user_list", (users: any[]) => {
+      setOnlineUsers(users.filter(u => u.id !== socket.id));
+    });
+
     return () => {
-      socket.disconnect();
       stopBroadcast();
       if (timerRef.current) clearInterval(timerRef.current);
+      socket.off("viewers_count");
+      socket.off("user_list");
     };
-  }, []);
+  }, [socket, user]);
+
+  const callUser = (targetSocketId: string, targetName: string) => {
+    if (!socket) return;
+    socket.emit("call_user", { to: targetSocketId, fromName: user?.name || "Locutor" });
+    alert(`Llamando a ${targetName}...`);
+  };
 
   const startBroadcast = async () => {
     if (!streamName.trim()) {
@@ -70,12 +82,12 @@ export default function Broadcast() {
       });
       
       if (!response.ok) throw new Error("Failed to get token");
-      const { token } = await response.json();
+      const { token, serverUrl } = await response.json();
 
       const room = new Room();
       roomRef.current = room;
 
-      await room.connect(import.meta.env.VITE_LIVEKIT_URL || 'wss://new-app-6tu2ilh8.livekit.cloud', token);
+      await room.connect(serverUrl, token);
       
       const tracks = await createLocalTracks({
         audio: true,
@@ -94,7 +106,7 @@ export default function Broadcast() {
         await room.localParticipant.publishTrack(track);
       }
 
-      socketRef.current?.emit("broadcaster", streamName);
+      socket?.emit("broadcaster", streamName);
       setIsLive(true);
     } catch (err) {
       console.error("Error starting broadcast:", err);
@@ -122,7 +134,7 @@ export default function Broadcast() {
     }
 
     setIsLive(false);
-    socketRef.current?.emit("stop_broadcasting");
+    socket?.emit("stop_broadcasting");
   };
 
   const toggleMute = () => {
@@ -292,8 +304,8 @@ export default function Broadcast() {
                 <span className="text-xs font-bold">{viewers}</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white" title="Estado del Servidor">
-                <div className={`w-2 h-2 rounded-full ${socketStatus === 'connected' ? 'bg-emerald-500' : socketStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'}`} />
-                <span className="text-xs font-bold capitalize">{socketStatus === 'connected' ? 'Conectado' : socketStatus === 'connecting' ? 'Conectando...' : 'Desconectado'}</span>
+                <div className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <span className="text-xs font-bold capitalize">{socketConnected ? 'Conectado' : 'Conectando...'}</span>
               </div>
             </div>
             
@@ -387,9 +399,58 @@ export default function Broadcast() {
             </div>
           </div>
 
-          {/* Chat */}
+          {/* Sidebar Tabs */}
+          <div className="flex border-b border-white/5 bg-black/20">
+            <button 
+              onClick={() => setShowUsers(false)}
+              className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all ${!showUsers ? 'text-brand-primary border-b-2 border-brand-primary bg-brand-primary/5' : 'text-neutral-500 hover:text-white'}`}
+            >
+              Chat
+            </button>
+            <button 
+              onClick={() => setShowUsers(true)}
+              className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all ${showUsers ? 'text-brand-primary border-b-2 border-brand-primary bg-brand-primary/5' : 'text-neutral-500 hover:text-white'}`}
+            >
+              Usuarios ({onlineUsers.length})
+            </button>
+          </div>
+
+          {/* Content */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <Chat socket={socketRef.current} isHost={true} />
+            {!showUsers ? (
+              <Chat socket={socket} isHost={true} />
+            ) : (
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <h3 className="text-sm font-bold text-neutral-400 uppercase tracking-widest mb-4">Usuarios en Línea</h3>
+                {onlineUsers.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
+                    <p className="text-neutral-500 text-sm">No hay otros usuarios conectados</p>
+                  </div>
+                ) : (
+                  onlineUsers.map((u) => (
+                    <div key={u.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-brand-primary/30 transition-all group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-brand-primary/10 text-brand-primary rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white group-hover:text-brand-primary transition-colors">{u.username}</p>
+                          <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-tighter">En línea</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => callUser(u.id, u.username)}
+                        className="p-2 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white rounded-xl transition-all shadow-lg"
+                        title="Video llamada 1v1"
+                      >
+                        <PhoneCall className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

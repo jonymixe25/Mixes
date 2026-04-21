@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { LanguageProvider } from "./context/LanguageContext";
 import { UserProvider } from "./contexts/UserContext";
+import { SocketProvider } from "./contexts/SocketContext";
+import CallOverlay from "./components/CallOverlay";
 import Home from "./pages/Home";
 import Broadcast from "./pages/Broadcast";
 import View from "./pages/View";
@@ -17,14 +19,15 @@ import ProtectedRoute from "./components/ProtectedRoute";
 export default function App() {
   return (
     <UserProvider>
-      <LanguageProvider>
-        <BrowserRouter>
-          <div className="min-h-screen bg-brand-bg flex flex-col">
-            <Navbar />
-            <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/transmitir" element={<Broadcast />} />
+      <SocketProvider>
+        <LanguageProvider>
+          <BrowserRouter>
+            <div className="min-h-screen bg-brand-bg flex flex-col">
+              <Navbar />
+              <main className="flex-1">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/transmitir" element={<Broadcast />} />
                 <Route path="/view" element={<View />} />
                 <Route path="/vista" element={<View />} />
                 <Route path="/recordings" element={<Recordings />} />
@@ -58,9 +61,11 @@ export default function App() {
               </Routes>
             </main>
             <Footer />
+            <CallOverlay />
           </div>
         </BrowserRouter>
       </LanguageProvider>
-    </UserProvider>
+    </SocketProvider>
+  </UserProvider>
   );
 }
