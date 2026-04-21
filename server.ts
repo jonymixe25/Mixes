@@ -190,7 +190,7 @@ async function startServer() {
       const token = await at.toJwt();
       res.json({ 
         token, 
-        serverUrl: process.env.LIVEKIT_URL || 'wss://new-app-6tu2ilh8.livekit.cloud' 
+        serverUrl: process.env.LIVEKIT_URL || 'wss://vidamixe-kxkfgn4j.livekit.cloud' 
       });
     } catch (error: any) {
       console.error("Error generating token:", error);
