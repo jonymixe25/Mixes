@@ -16,6 +16,8 @@ async function startServer() {
   const allowedOrigins = [
     "https://vidamixe.mx", 
     "https://www.vidamixe.mx", 
+    "https://sexmixe.lat",
+    "https://www.sexmixe.lat",
     "https://app-new-production-1af2.up.railway.app",
     "http://localhost:3000",
     process.env.APP_URL
