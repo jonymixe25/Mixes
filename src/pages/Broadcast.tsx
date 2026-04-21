@@ -71,6 +71,7 @@ export default function Broadcast() {
 
     setConnecting(true);
     try {
+      console.log("Fetching token...");
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,18 +82,26 @@ export default function Broadcast() {
         })
       });
       
-      if (!response.ok) throw new Error("Failed to get token");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to get token: ${response.statusText} ${JSON.stringify(errorData)}`);
+      }
       const { token } = await response.json();
+      console.log("Token received.");
 
       const room = new Room();
       roomRef.current = room;
 
+      console.log("Connecting to room...", import.meta.env.VITE_LIVEKIT_URL || 'wss://new-app-6tu2ilh8.livekit.cloud');
       await room.connect(import.meta.env.VITE_LIVEKIT_URL || 'wss://new-app-6tu2ilh8.livekit.cloud', token);
+      console.log("Connected to room.");
       
+      console.log("Creating local tracks...");
       const tracks = await createLocalTracks({
         audio: true,
         video: { resolution: { width: 1280, height: 720 } }
       });
+      console.log("Local tracks created.");
 
       for (const track of tracks) {
         if (track.kind === Track.Kind.Video) {
@@ -108,9 +117,9 @@ export default function Broadcast() {
 
       socket?.emit("broadcaster", streamName);
       setIsLive(true);
-    } catch (err) {
-      console.error("Error starting broadcast:", err);
-      alert("Error al iniciar la transmisión. Por favor, verifica tu conexión y permisos.");
+    } catch (err: any) {
+      console.error("Detailed error starting broadcast:", err);
+      alert(`Error al iniciar la transmisión: ${err.message || 'Error desconocido'}. Por favor, verifica tu conexión y permisos.`);
     } finally {
       setConnecting(false);
     }
