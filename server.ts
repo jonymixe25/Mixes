@@ -18,20 +18,16 @@ async function startServer() {
     "https://www.vidamixe.mx", 
     "https://sexmixe.lat",
     "https://www.sexmixe.lat",
+    "http://sexmixe.lat",
+    "http://www.sexmixe.lat",
     "https://app-new-production-1af2.up.railway.app",
     "http://localhost:3000",
     process.env.APP_URL
   ].filter(Boolean) as string[];
   
-  // Enable CORS for all routes
+  // Enable CORS - more permissive for debugging connection issues
   app.use(cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || origin.includes("ais-dev-") || origin.includes("ais-pre-")) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: true, // Allow all origins temporarily
     methods: ["GET", "POST", "OPTIONS"],
     credentials: true
   }));
@@ -42,13 +38,7 @@ async function startServer() {
   
   const io = new Server(httpServer, {
     cors: {
-      origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin) || origin.includes("ais-dev-") || origin.includes("ais-pre-")) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
+      origin: true, // Allow all origins
       methods: ["GET", "POST"]
     },
     pingTimeout: 60000,

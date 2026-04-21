@@ -64,6 +64,11 @@ export default function Broadcast() {
   };
 
   const startBroadcast = async () => {
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      alert("La transmisión requiere una conexión segura (HTTPS) para acceder a la cámara y el micrófono.");
+      return;
+    }
+
     if (!streamName.trim()) {
       alert("Por favor, ingresa un nombre para la transmisión");
       return;
@@ -71,6 +76,7 @@ export default function Broadcast() {
 
     setConnecting(true);
     try {
+      console.log("Solicitando token a la API...");
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,19 +87,37 @@ export default function Broadcast() {
         })
       });
       
-      if (!response.ok) throw new Error("Failed to get token");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Error al obtener token (${response.status}): ${errorData.error || 'Servidor no respondió correctamente'}`);
+      }
+      
       const { token, serverUrl } = await response.json();
+      console.log("Token obtenido, conectando a LiveKit:", serverUrl);
 
       const room = new Room();
       roomRef.current = room;
 
-      await room.connect(serverUrl, token);
+      try {
+        await room.connect(serverUrl, token);
+        console.log("Conectado a LiveKit con éxito");
+      } catch (connErr: any) {
+        throw new Error(`Error de conexión LiveKit: ${connErr.message || 'No se pudo establecer conexión con el servidor de video'}`);
+      }
       
-      const tracks = await createLocalTracks({
-        audio: true,
-        video: { resolution: { width: 1280, height: 720 } }
-      });
+      console.log("Solicitando permisos de cámara y micrófono...");
+      let tracks;
+      try {
+        tracks = await createLocalTracks({
+          audio: true,
+          video: { resolution: { width: 1280, height: 720 } }
+        });
+      } catch (trackErr: any) {
+        console.error("Permisos denegados:", trackErr);
+        throw new Error(`Permisos denegados: Asegúrate de permitir el acceso a la cámara y micrófono en tu navegador.`);
+      }
 
+      console.log("Publicando tracks...");
       for (const track of tracks) {
         if (track.kind === Track.Kind.Video) {
           localVideoTrackRef.current = track as LocalVideoTrack;
@@ -108,9 +132,10 @@ export default function Broadcast() {
 
       socket?.emit("broadcaster", streamName);
       setIsLive(true);
-    } catch (err) {
-      console.error("Error starting broadcast:", err);
-      alert("Error al iniciar la transmisión. Por favor, verifica tu conexión y permisos.");
+      console.log("Transmisión iniciada!");
+    } catch (err: any) {
+      console.error("Error detallado:", err);
+      alert(`Error: ${err.message || "Error desconocido al iniciar la transmisión."}`);
     } finally {
       setConnecting(false);
     }
@@ -237,6 +262,12 @@ export default function Broadcast() {
       <Helmet>
         <title>Panel de Transmisión | Vida Mixe TV</title>
       </Helmet>
+
+      {window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && (
+        <div className="bg-red-500 text-white text-center py-2 text-[10px] font-bold animate-pulse z-[100] uppercase tracking-widest">
+          ⚠️ Estás usando una conexión no segura (HTTP). El video y audio NO funcionarán. Por favor usa HTTPS://SEXMIXE.LAT
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Video Area */}
@@ -380,7 +411,7 @@ export default function Broadcast() {
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-white">Panel de Transmisión</h2>
+                  <h2 className="font-bold text-white">Panel de Transmisión v1.0.5</h2>
                   <p className="text-[10px] text-neutral-500 uppercase tracking-widest">{user?.name || "Locutor"}</p>
                 </div>
               </div>
