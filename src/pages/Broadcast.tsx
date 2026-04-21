@@ -105,13 +105,25 @@ export default function Broadcast() {
         throw new Error(`Error al obtener token (${response.status}): ${errorMessage}`);
       }
       
-      const { token, serverUrl } = await response.json();
-      console.log("Token obtenido, conectando a LiveKit:", serverUrl);
+      const data = await response.json();
+      const { token, serverUrl } = data;
+      
+      console.log("Datos de conexión recibidos:", { 
+        hasToken: !!token, 
+        serverUrl, 
+        tokenLength: token?.length 
+      });
+
+      if (!serverUrl || typeof serverUrl !== 'string' || !serverUrl.startsWith('ws')) {
+        console.error("URL de LiveKit inválida recibida:", serverUrl);
+        throw new Error(`La URL del servidor de video es inválida: "${serverUrl}". Verifica la configuración de LIVEKIT_URL.`);
+      }
 
       const room = new Room();
       roomRef.current = room;
 
       try {
+        console.log("Intentando conectar a LiveKit en:", serverUrl);
         await room.connect(serverUrl, token);
         console.log("Conectado a LiveKit con éxito");
       } catch (connErr: any) {
@@ -433,7 +445,7 @@ export default function Broadcast() {
                       <span className="text-[8px] text-red-500/50 animate-pulse">(Error de Red)</span>
                     )}
                   </div>
-                  <h2 className="font-bold text-white leading-tight">Panel de Transmisión v1.1.0</h2>
+                  <h2 className="font-bold text-white leading-tight">Panel de Transmisión v1.1.5</h2>
                   <p className="text-[10px] text-neutral-500 uppercase tracking-widest">{user?.name || "Locutor"}</p>
                 </div>
               </div>

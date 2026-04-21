@@ -121,7 +121,13 @@ export default function View() {
         throw new Error(`Error en el servidor: ${response.status} ${response.statusText}`);
       }
       
-      const { token, serverUrl } = await response.json();
+      const data = await response.json();
+      const { token, serverUrl } = data;
+
+      if (!serverUrl || typeof serverUrl !== 'string' || !serverUrl.startsWith('ws')) {
+        console.error("URL de LiveKit inválida recibida:", serverUrl);
+        throw new Error(`La URL del servidor de video es inválida.`);
+      }
 
       const room = new Room();
       roomRef.current = room;
@@ -132,6 +138,7 @@ export default function View() {
         }
       });
 
+      console.log("Conectando con LiveKit (Espectador)...");
       await room.connect(serverUrl, token);
     } catch (error: any) {
       console.error("Error joining stream:", error);

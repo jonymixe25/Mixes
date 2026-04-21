@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
+  app.set('trust proxy', 1);
   const PORT = 3000;
   const httpServer = createServer(app);
   
@@ -120,21 +121,40 @@ async function startServer() {
   const api = express.Router();
 
   api.get("/health", (req, res) => {
-    res.json({ status: "ok", version: "1.1.1", env: process.env.NODE_ENV });
+    res.json({ status: "ok", version: "1.1.5", env: process.env.NODE_ENV });
   });
 
   api.post("/livekit/token", async (req, res) => {
     try {
       const { roomName, participantName, isBroadcaster } = req.body;
-      const apiKey = process.env.LIVEKIT_API_KEY;
-      const apiSecret = process.env.LIVEKIT_API_SECRET;
+      const apiKey = process.env.LIVEKIT_API_KEY?.trim();
+      const apiSecret = process.env.LIVEKIT_API_SECRET?.trim();
+      let rawUrl = process.env.LIVEKIT_URL?.trim() || "";
+      
+      console.log(`[DEBUG] Generando token para sala: ${roomName}. Usando API Key: ${apiKey?.substring(0, 4)}...`);
+      
+      // Default fallback
+      let serverUrl = 'wss://vidamixe-kxkfgn4j.livekit.cloud';
+
+      if (rawUrl) {
+        // If it starts with a hyphen or doesn't have protocol, it might be a malformed hostname
+        if (rawUrl.startsWith('-')) {
+          console.warn(`[WARNING] LIVEKIT_URL seems malformed: "${rawUrl}". Using default.`);
+        } else if (!rawUrl.startsWith('ws://') && !rawUrl.startsWith('wss://')) {
+          // If it's a hostname without protocol, add wss://
+          serverUrl = `wss://${rawUrl}`;
+          console.log(`[DEBUG] Added protocol to LIVEKIT_URL: ${serverUrl}`);
+        } else {
+          serverUrl = rawUrl;
+        }
+      }
 
       if (!apiKey || !apiSecret) {
-        return res.status(500).json({ error: "Credenciales de LiveKit no configuradas en el servidor." });
+        return res.status(500).json({ error: "Credenciales de LiveKit no configuradas en el servidor. Revisa los Ajustes (Settings)." });
       }
 
       const at = new AccessToken(apiKey, apiSecret, {
-        identity: participantName || `user-${Math.floor(Math.random() * 10000)}`,
+        identity: (participantName as string | undefined)?.trim() || `user-${Math.floor(Math.random() * 10000)}`,
       });
 
       at.addGrant({
@@ -147,7 +167,7 @@ async function startServer() {
       const token = await at.toJwt();
       res.json({ 
         token, 
-        serverUrl: process.env.LIVEKIT_URL || 'wss://vidamixe-kxkfgn4j.livekit.cloud' 
+        serverUrl
       });
     } catch (error: any) {
       console.error("Token API Error:", error);

@@ -15,12 +15,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // Re-enable polling first for discovery, then upgrade to websocket
-    // This is more resilient to varied proxy/firewall environments (latam mobile networks, extra proxies)
+    // Use standard transports for maximum compatibility across different networks
     const s = io({
       transports: ["polling", "websocket"],
       reconnectionAttempts: 15,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 2000,
       timeout: 30000,
       autoConnect: true,
     });
