@@ -1,0 +1,5 @@
+{
+  "name": "Vida Mixe",
+  "description": "Aplicación de transmisión en vivo y radio para la comunidad Mixe",
+  "requestFramePermissions": ["camera", "microphone"]
+}

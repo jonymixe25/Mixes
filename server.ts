@@ -168,15 +168,24 @@ async function startServer() {
   });
 
   app.post("/api/livekit/token", async (req, res) => {
+    console.log("POST /api/livekit/token received");
     try {
       const { roomName, participantName, isBroadcaster } = req.body;
       const apiKey = process.env.LIVEKIT_API_KEY;
       const apiSecret = process.env.LIVEKIT_API_SECRET;
+      
+      console.log("Request body:", req.body);
+      console.log("API Key present:", !!apiKey);
+      console.log("API Secret present:", !!apiSecret);
 
       if (!apiKey || !apiSecret) {
         throw new Error("LiveKit API Key or Secret not configured");
       }
 
+      console.log("Generating AccessToken...");
+      console.log("API Key:", apiKey?.slice(0, 5) + "...");
+      console.log("Identity:", participantName || `user-${Math.floor(Math.random() * 10000)}`);
+      
       const at = new AccessToken(apiKey, apiSecret, {
         identity: participantName || `user-${Math.floor(Math.random() * 10000)}`,
       });
@@ -189,6 +198,7 @@ async function startServer() {
       });
 
       const token = await at.toJwt();
+      console.log("Token generated successfully");
       res.json({ token });
     } catch (error) {
       console.error("Error generating token:", error);
@@ -217,11 +227,16 @@ async function startServer() {
   }
 
   httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server successfully started on port ${PORT}`);
   });
 }
 
+// Global error handler for unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 startServer().catch(err => {
-  console.error("Failed to start server:", err);
+  console.error("Critical failure during server startup:", err);
   process.exit(1);
 });

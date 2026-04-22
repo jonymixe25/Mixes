@@ -72,7 +72,25 @@ export default function Broadcast() {
 
     setConnecting(true);
     try {
-      console.log("Fetching token...");
+      // 1. Obtener pistas locales primero (Permisos de Cámara y Micrófono)
+      console.log("Solicitando permisos de cámara y micrófono...");
+      let tracks;
+      try {
+        tracks = await createLocalTracks({
+          audio: true,
+          video: true
+        });
+        console.log("Permisos concedidos y pistas creadas.");
+      } catch (trackErr: any) {
+        console.error("Error al obtener pistas locales:", trackErr);
+        if (trackErr.name === 'NotAllowedError' || trackErr.name === 'PermissionDeniedError' || trackErr.message?.includes('denied')) {
+          throw new Error("PERMISO_DENEGADO: El navegador o el sistema bloquearon el acceso a la cámara/micrófono. Debes habilitarlos en los ajustes de tu celular.");
+        }
+        throw trackErr;
+      }
+
+      // 2. Si tenemos permisos, obtener el token
+      console.log("Obteniendo token del servidor...");
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,25 +103,25 @@ export default function Broadcast() {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Failed to get token: ${response.statusText} ${JSON.stringify(errorData)}`);
+        throw new Error(`Error de servidor (Token): ${response.statusText} ${JSON.stringify(errorData)}`);
       }
       const { token } = await response.json();
-      console.log("Token received.");
+      console.log("Token recibido.");
 
+      // 3. Conectar al cuarto
       const room = new Room();
       roomRef.current = room;
 
-      console.log("Connecting to room...", import.meta.env.VITE_LIVEKIT_URL || 'wss://new-app-6tu2ilh8.livekit.cloud');
-      await room.connect(import.meta.env.VITE_LIVEKIT_URL || 'wss://new-app-6tu2ilh8.livekit.cloud', token);
-      console.log("Connected to room.");
+      const liveKitUrl = import.meta.env.VITE_LIVEKIT_URL;
+      if (!liveKitUrl) {
+        throw new Error("VITE_LIVEKIT_URL no configurada en las variables de entorno.");
+      }
       
-      console.log("Creating local tracks...");
-      const tracks = await createLocalTracks({
-        audio: true,
-        video: { resolution: videoQuality }
-      });
-      console.log("Local tracks created.");
+      console.log("Conectando a LiveKit...");
+      await room.connect(liveKitUrl, token);
+      console.log("Conexión establecida.");
 
+      // 4. Publicar pistas
       for (const track of tracks) {
         if (track.kind === Track.Kind.Video) {
           localVideoTrackRef.current = track as LocalVideoTrack;
@@ -119,8 +137,14 @@ export default function Broadcast() {
       socket?.emit("broadcaster", streamName);
       setIsLive(true);
     } catch (err: any) {
-      console.error("Detailed error starting broadcast:", err);
-      alert(`Error al iniciar la transmisión: ${err.message || 'Error desconocido'}. Por favor, verifica tu conexión y permisos.`);
+      console.error("Error detallado al iniciar la transmisión:", err);
+      let userMessage = err.message || 'Error desconocido';
+      
+      if (err.message.includes("PERMISO_DENEGADO")) {
+        userMessage = "¡ATENCIÓN! La cámara está BLOQUEADA por tu celular o navegador. \n\nPasos para arreglar:\n1. Toca el Cándado arriba junto a la dirección web.\n2. Asegúrate que Cámara y Micro digan PERMITIR.\n3. Si ya dicen permitir, apáguelos y vuelva a prenderlos.";
+      }
+      
+      alert(userMessage);
     } finally {
       setConnecting(false);
     }
