@@ -14,6 +14,7 @@ export default function Broadcast() {
   const { user, loading: userLoading, logout } = useUser();
   const { socket, connected: socketConnected } = useSocket();
   const [streamName, setStreamName] = useState("");
+  const [videoQuality, setVideoQuality] = useState<{ width: number; height: number }>({ width: 1280, height: 720 });
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [viewers, setViewers] = useState(0);
@@ -99,7 +100,7 @@ export default function Broadcast() {
       console.log("Creating local tracks...");
       const tracks = await createLocalTracks({
         audio: true,
-        video: { resolution: { width: 1280, height: 720 } }
+        video: { resolution: videoQuality }
       });
       console.log("Local tracks created.");
 
@@ -266,6 +267,19 @@ export default function Broadcast() {
                   placeholder="Nombre de la transmisión..."
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-brand-primary/50 transition-all text-center"
                 />
+                
+                <select
+                  value={`${videoQuality.width}x${videoQuality.height}`}
+                  onChange={(e) => {
+                    const [width, height] = e.target.value.split('x').map(Number);
+                    setVideoQuality({ width, height });
+                  }}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-brand-primary/50 transition-all text-center"
+                >
+                  <option value="1280x720">720p (Recomendado)</option>
+                  <option value="1920x1080">1080p (Alta calidad)</option>
+                </select>
+
                 <button 
                   onClick={startBroadcast}
                   className="w-full py-4 bg-brand-primary hover:bg-brand-primary/80 text-white font-bold rounded-2xl transition-all shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2"
@@ -318,6 +332,10 @@ export default function Broadcast() {
               </div>
             </div>
             
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-neutral-300">
+               <span className="text-xs font-bold uppercase tracking-widest">{videoQuality.width}x{videoQuality.height}</span>
+            </div>
+
             {isRecording && (
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-600/20 border border-red-500 text-red-500 backdrop-blur-md w-fit">
                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -346,7 +364,7 @@ export default function Broadcast() {
               </div>
 
               <div className="w-px h-8 bg-white/10 mx-2" />
-
+              
               <div className="flex items-center gap-2">
                 {!isRecording ? (
                   <button 
